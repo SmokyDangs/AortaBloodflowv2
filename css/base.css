@@ -1,0 +1,24 @@
+:root {
+    --accent-red: #ff4444;
+    --accent-blue: #00d4ff;
+    --bg-dark: #050505;
+    --bg-card: rgba(15, 15, 15, 0.85);
+    --text-main: #ffffff;
+    --text-dim: #bbbbbb;
+    --nav-height: 70px;
+    --content-max-width: 70%;
+}
+
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
