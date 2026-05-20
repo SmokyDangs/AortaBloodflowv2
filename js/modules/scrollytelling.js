@@ -98,17 +98,17 @@ async function init() {
     controls1.enablePan = false;  
 
     const [sickLinesGltf, sickMeshGltf, healthyLinesGltf, healthyMeshGltf] = await Promise.all([
-        loader.loadModel('assets/models/web_optimiert/sick_aorta_pathlines.glb'),
-        loader.loadModel('assets/models/web_optimiert/sick_aorta_mesh.glb'),
-        loader.loadModel('assets/models/web_optimiert/healthy_aorta_pathlines.glb'),
-        loader.loadModel('assets/models/web_optimiert/healthy_aorta_mesh.glb')
+        loader.loadModel('assets/models/sick_aorta_pathlines.glb'),
+        loader.loadModel('assets/models/sick_aorta_mesh.glb'),
+        loader.loadModel('assets/models/healthy_aorta_pathlines.glb'),
+        loader.loadModel('assets/models/healthy_aorta_mesh.glb')
     ]);
 
-    group1.add(loader.processWall(sickMeshGltf.scene, settings));
-    flow1.paths = loader.processPathlines(sickLinesGltf.scene);
+    if (sickMeshGltf) group1.add(loader.processWall(sickMeshGltf.scene, settings));
+    if (sickLinesGltf) flow1.paths = loader.processPathlines(sickLinesGltf.scene);
     
-    group2.add(loader.processWall(healthyMeshGltf.scene, settings));
-    flow2.paths = loader.processPathlines(healthyLinesGltf.scene);
+    if (healthyMeshGltf) group2.add(loader.processWall(healthyMeshGltf.scene, settings));
+    if (healthyLinesGltf) flow2.paths = loader.processPathlines(healthyLinesGltf.scene);
 
     centerGroup(group1);
     centerGroup(group2);

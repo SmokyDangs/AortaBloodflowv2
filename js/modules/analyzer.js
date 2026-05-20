@@ -36,8 +36,8 @@ const settings = {
     aortaOpacity: 0.05,
     wireframe: false,
     aortaColor: "#ffffff",
-    modelPath: 'assets/models/web_optimiert/sick_aorta_pathlines.glb',
-    wallModelPath: 'assets/models/web_optimiert/sick_aorta_mesh.glb',
+    modelPath: 'assets/models/sick_aorta_pathlines.glb',
+    wallModelPath: 'assets/models/sick_aorta_mesh.glb',
     pathStyle: 'Comets', 
     pathColor: '#ffffff',
     pathWidth: 1.2,
@@ -110,8 +110,8 @@ async function loadModels(pathUrl, wallUrl) {
         loader.loadModel(wallUrl)
     ]);
 
-    flowObj.paths = loader.processPathlines(pathGltf.scene);
-    mainGroup.add(loader.processWall(wallGltf.scene, settings));
+    if (pathGltf) flowObj.paths = loader.processPathlines(pathGltf.scene);
+    if (wallGltf) mainGroup.add(loader.processWall(wallGltf.scene, settings));
 
     const box = new THREE.Box3().setFromObject(mainGroup);
     const center = box.getCenter(new THREE.Vector3());
