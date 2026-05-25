@@ -3,201 +3,280 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aorta Project - Dashboard</title>
+    <title>Aorta Vergleich - Interaktive Aufklärung</title>
     <link rel="stylesheet" href="css/style.css">
-    <style>
-        :root {
-            --bg-color: #050505;
-            --card-bg: #111;
-            --accent-red: #ff4444;
-            --accent-blue: #00d4ff;
-            --accent-green: #00ff88;
-            --text-main: #ffffff;
-            --text-dim: #888;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding-top: var(--nav-height);
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 50px;
-        }
-
-        header h1 {
-            font-weight: 300;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-            margin: 0;
-            background: linear-gradient(to right, var(--accent-red), var(--accent-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        header p {
-            color: var(--text-dim);
-            margin-top: 10px;
-            letter-spacing: 1px;
-        }
-
-        .dashboard-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            width: 90%;
-            max-width: 1200px;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            padding: 40px;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card:hover {
-            transform: translateY(-10px);
-            border-color: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--accent-blue);
-            opacity: 0.5;
-        }
-
-        .card.scrolly::before { background: var(--accent-red); }
-        .card.analyzer::before { background: var(--accent-blue); }
-        .card.dev::before { background: var(--accent-green); }
-
-        .card h2 {
-            margin: 0 0 15px 0;
-            font-weight: 400;
-            font-size: 1.5rem;
-        }
-
-        .card p {
-            color: var(--text-dim);
-            font-size: 0.95rem;
-            line-height: 1.5;
-            margin: 0 0 25px 0;
-            flex-grow: 1;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 12px 24px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: background 0.3s;
-        }
-
-        .card:hover .btn {
-            background: rgba(255,255,255,0.15);
-        }
-
-        .footer {
-            margin-top: 60px;
-            color: #333;
-            font-size: 0.8rem;
-            letter-spacing: 1px;
-        }
-    </style>
 </head>
 <body>
+<nav class="navbar">
+    <a href="index.html" class="nav-logo">Aorta <span>Project</span></a>
+    <div class="nav-toggle" id="nav-toggle">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <ul class="nav-links" id="nav-links">
+        <li><a href="#s1" class="active">Einführung</a></li>
+        <li><a href="#s4">Anatomie</a></li>
+        <li><a href="#s6">Ursachen</a></li>
+        <li><a href="#s8">Diagnose</a></li>
+        <li><a href="#s11">Verlauf</a></li>
+        <li><a href="#s13">Therapie</a></li>
+        <li><a href="#s16">Prävention</a></li>
+    </ul>
+</nav>
 
-    <nav class="navbar">
-        <a href="index.html" class="nav-logo">Aorta <span>Project</span></a>
-        <ul class="nav-links">
-            <li><a href="scrollytelling.html">Story</a></li>
-            <li><a href="analyzer.html">Expert Analyzer</a></li>
-            <li><a href="index.html" class="active">Dashboard</a></li>
-        </ul>
-        <div class="nav-toggle">
-            <span></span>
-            <span></span>
-            <span></span>
+<div class="nav-menu-mobile" id="nav-menu-mobile">
+    <ul>
+        <li><a href="#s1">Einführung</a></li>
+        <li><a href="#s4">Anatomie</a></li>
+        <li><a href="#s6">Ursachen</a></li>
+        <li><a href="#s8">Diagnose</a></li>
+        <li><a href="#s11">Verlauf</a></li>
+        <li><a href="#s13">Therapie</a></li>
+        <li><a href="#s16">Prävention</a></li>
+    </ul>
+</div>
+<div id="progress-bar"></div>
+
+<div class="scrolly-layout">
+    <div class="left-column">
+        <main id="story">
+            <!-- Kapitel 1: Einführung -->
+            <section class="step" id="s1">
+                <div class="text-box">
+                    <h2>🫀 1. Die Lebensader</h2>
+                    <p>Die <span class="tech-term" data-term="aorta">Aorta</span> ist das Herzstück unseres Kreislaufs. Jedes Jahr pumpt sie Millionen Liter Blut durch den Körper.</p>
+                    <div class="placeholder-box"><i>Pulsierende Silhouette</i> [Bild: silhouette_pulsing.png]</div>
+                    <p>Doch wie stabil ist diese Leitung wirklich?</p>
+                </div>
+            </section>
+
+            <section class="step" id="s2">
+                <div class="text-box">
+                    <h2>🚶‍♂️ 2. Das ist Rainer</h2>
+                    <p>Rainer, 61 Jahre alt, ist leidenschaftlicher Wanderer. Er fühlt sich fit und gesund.</p>
+                    <div class="placeholder-box"><i>Patient Rainer (61)</i> [Bild: rainer.jpg]</div>
+                    <p>Er ahnt jedoch nichts von der tickenden Zeitbombe in seinem Bauch.</p>
+                </div>
+            </section>
+
+            <section class="step" id="s3">
+                <div class="text-box">
+                    <h2>🤫 3. Die stumme Gefahr</h2>
+                    <p>Wussten Sie, dass bis zu 5% aller Männer über 65 Jahre eine krankhafte Erweiterung der Aorta in sich tragen?</p>
+                    <div class="placeholder-box"><i>Anatomischer Querschnitt</i> [Bild: anatomy_cross_section.png]</div>
+                    <div class="stats-box placeholder-box">
+                        <div class="icon-placeholder">📊</div>
+                        <strong>Statistik:</strong> 1 von 20 Männern über 65 betroffen.
+                    </div>
+                    <p>Meist bleibt dies über Jahre völlig unentdeckt.</p>
+                </div>
+            </section>
+
+            <!-- Kapitel 2: Gesund vs. Krank -->
+            <section class="step" id="s4">
+                <div class="text-box">
+                    <h2>4. Gesunde Anatomie</h2>
+                    <p>Eine gesunde Aorta ist elastisch und glattwandig. Sie fungiert als Windkessel, der den stoßweisen Blutfluss des Herzens ausgleicht.</p>
+                    <div class="placeholder-box"><i>Schema: Windkesselfunktion</i> [Grafik: windkessel.png]</div>
+                </div>
+            </section>
+
+            <section class="step" id="s5">
+                <div class="text-box">
+                    <h2>5. Pathologische Veränderung</h2>
+                    <p>Bei Rainer hat die Gefäßwand nachgegeben. Es hat sich ein <span class="tech-term" data-term="aneurysma">Aneurysma</span> gebildet – eine sackartige Ausbeulung, die jederzeit reißen könnte.</p>
+                    <div class="placeholder-box"><i>Detail: Gefäßwand-Schwäche</i> [Grafik: wall_weakness.png]</div>
+                </div>
+            </section>
+
+            <!-- Kapitel 3: Ursachen & Risikofaktoren -->
+            <section class="step" id="s6">
+                <div class="text-box">
+                    <h2>🧬 6. Biologische Ursachen</h2>
+                    <p>Oft spielt die Genetik eine Rolle. Bindegewebsschwächen wie das Marfan-Syndrom schwächen die Struktur der Aorta von Geburt an.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s6_biologie.glb</i></div>
+                    <div class="icon-grid">
+                        <div class="icon-item"><div class="icon-placeholder">🧬</div><span>Genetik</span></div>
+                        <div class="icon-item"><div class="icon-placeholder">⏳</div><span>Alterung</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="s7">
+                <div class="text-box">
+                    <h2>🚭 7. Lebensstil & Umwelt</h2>
+                    <p>Bluthochdruck ist der Feind Nummer eins. Er drückt permanent gegen die Gefäßwand. Rauchen und schlechte Cholesterinwerte beschleunigen den Verschleiß.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s7_lebensstil.glb</i></div>
+                    <div class="stats-box placeholder-box">
+                        <div class="icon-placeholder">📉</div>
+                        <strong>Risiko:</strong> Raucher haben ein 7-fach höheres Risiko.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kapitel 4: Symptome & Diagnose -->
+            <section class="step" id="s8">
+                <div class="text-box">
+                    <h2>⚠️ 8. Klinische Symptome</h2>
+                    <p>Ein Aneurysma schmerzt meist nicht. Erst wenn es zu einem Riss kommt, tritt ein vernichtender, messerscharfer Schmerz auf.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s8_symptome.glb</i></div>
+                    <div class="stats-box placeholder-box">
+                        <div class="icon-placeholder">⚡</div>
+                        <strong>Symptom:</strong> Akuter Vernichtungsschmerz.
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="s9">
+                <div class="text-box">
+                    <h2>🔍 9. Diagnostische Verfahren</h2>
+                    <p>Die Rettung ist oft ein Zufallsbefund. Ein einfacher Ultraschall des Bauches reicht aus, um die Gefahr sicher zu identifizieren.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s9_diagnose.glb</i></div>
+                    <div class="stats-box placeholder-box">
+                        <div class="icon-placeholder">🛡️</div>
+                        <strong>Früherkennung:</strong> Schmerzfrei und sicher.
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="s10">
+                <div class="text-box">
+                    <h2>📸 10. Bildgebung</h2>
+                    <p>In der Computertomographie (CT) wird das Ausmaß sichtbar. Chirurgen nutzen diese Bilder, um Rainers Operation zu planen.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s10_bildgebung.glb</i></div>
+                    <div class="stats-box placeholder-box">
+                        <div class="icon-placeholder">📏</div>
+                        <strong>Präzision:</strong> Millimetergenaue Vermessung.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kapitel 5: Krankheitsverlauf -->
+            <section class="step" id="s11">
+                <div class="text-box">
+                    <h2>🌪️ 11. Wirkmechanismus</h2>
+                    <p>Physik in der Aorta: In der Ausbeulung entstehen gefährliche Wirbel. Der Blutstrom wird turbulent und belastet die Wand.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s11_wirkmechanismus.glb</i></div>
+                    <div class="stats-box placeholder-box">
+                        <div class="icon-placeholder">🌀</div>
+                        <strong>Fokus:</strong> Wandschubspannung.
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="s12">
+                <div class="text-box">
+                    <h2>📈 12. Krankheitsstadien</h2>
+                    <p>Ab 5,5 cm steigt das Rupturrisiko exponentiell an. Rainer liegt bereits bei kritischen 5,8 cm.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s12_stadien.glb</i></div>
+                    <div class="stats-box placeholder-box">
+                        <div class="icon-placeholder">🚩</div>
+                        <strong>Grenzwert:</strong> 5,5 cm = OP-Indikation.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kapitel 6: Therapie & Management -->
+            <section class="step" id="s13">
+                <div class="text-box">
+                    <h2>💊 13. Behandlungsoptionen</h2>
+                    <p>Medikamente senken den Druck, doch ab einer gewissen Größe hilft nur Mechanik: Die Aorta muss verstärkt werden.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s13_therapie.glb</i></div>
+                    <div class="icon-grid">
+                        <div class="icon-item"><div class="icon-placeholder">💊</div><span>Pillen</span></div>
+                        <div class="icon-item"><div class="icon-placeholder">⚙️</div><span>Technik</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="s14">
+                <div class="text-box">
+                    <h2>🛡️ 14. Die Rettung</h2>
+                    <p>Ein Stent-Graft wird minimalinvasiv eingeführt. Er entfaltet sich und leitet das Blut sicher an der Schwachstelle vorbei.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s14_stent.glb</i></div>
+                    <div class="stats-box placeholder-box">
+                        <div class="icon-placeholder">✅</div>
+                        <strong>Verfahren:</strong> EVAR.
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="s15">
+                <div class="text-box">
+                    <h2>⚖️ 15. Risiken & Nutzen</h2>
+                    <p>Kein Eingriff ohne Risiko. Doch für Rainer ist der Nutzen klar: Ohne den Stent wäre die Gefahr eines Risses extrem hoch.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s15_risiken.glb</i></div>
+                    <div class="stats-box placeholder-box">
+                        <div class="icon-placeholder">⚖️</div>
+                        <strong>Erfolg:</strong> Überlebensrate > 95%.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kapitel 7: Ausblick & Prävention -->
+            <section class="step" id="s16">
+                <div class="text-box">
+                    <h2>⛰️ 16. Rainers Ausblick</h2>
+                    <p>Drei Monate nach der Operation: Rainer steht wieder auf dem Gipfel. Er hat seine Lebensqualität zurückgewonnen.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s16_ausblick.glb</i></div>
+                    <div class="stats-box placeholder-box">
+                        <div class="icon-placeholder">🏔️</div>
+                        <strong>Erfolg:</strong> Zurück im Alltag.
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="s17">
+                <div class="text-box">
+                    <h2>🍎 17. Präventionstipps</h2>
+                    <p>Kennen Sie Ihren Blutdruck! Ab 65 Jahren sollten Sie das kostenlose Ultraschall-Screening wahrnehmen.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s17_praevention.glb</i></div>
+                    <div class="icon-grid">
+                        <div class="icon-item"><div class="icon-placeholder">❤️</div><span>Check-Up</span></div>
+                        <div class="icon-item"><div class="icon-placeholder">🍏</div><span>Lifestyle</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" id="s18">
+                <div class="text-box">
+                    <h2>✨ 18. Fazit</h2>
+                    <p>Die Aorta ist leise, bis sie schreit. Früherkennung rettet Leben. Passen Sie auf Ihre Lebensader auf.</p>
+                    <div class="placeholder-box"><i>3D-Modell: s18_fazit.glb</i></div>
+                    <div class="stats-box placeholder-box">
+                        <div class="icon-placeholder">✨</div>
+                        <strong>Take-Home:</strong> Blutdruck messen - Leben retten.
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <div class="right-column">
+        <div id="container3d"></div>
+        <div id="stent-placeholder">[PLATZHALTER: 3D-MODELL STENT-GRAFT]</div>
+        <div id="rainer-anatomy-placeholder" class="stent-placeholder-style">[PLATZHALTER: 3D-MODELL RAINER ANATOMIE]</div>
+        <div id="aorta-hole-placeholder" class="stent-placeholder-style">[PLATZHALTER: 3D-MODELL AORTA LOCH]</div>
+    </div>
+</div>
+
+    <footer class="main-footer">
+        <div class="footer-content">
+            <p>&copy; 2026 Aorta Scrollytelling Project. Alle Rechte vorbehalten.</p>
+            <div class="footer-links">
+                <a href="#">Impressum</a>
+                <a href="#">Datenschutz</a>
+            </div>
         </div>
-    </nav>
-
-    <header>
-        <h1>Aorta Visualizer</h1>
-        <p>Projekt-Steuerzentrale & Dashboard</p>
-    </header>
-
-    <div class="dashboard-container">
-        
-        <a href="scrollytelling.html" class="card scrolly">
-            <h2>Scrollytelling Experience</h2>
-            <p>Die Haupt-Story: Eine interaktive Reise vom Herzen durch die Anatomie bis hin zum funktionalen Fluss-Vergleich.</p>
-            <div class="btn">Starten</div>
-        </a>
-
-        <a href="analyzer.html" class="card analyzer">
-            <h2>Flow Analyzer Pro</h2>
-            <p>Experten-Ansicht mit Kontrollpanel. Untersuche Turbulenzen, Geschwindigkeiten und Partikel-Verhalten im Detail.</p>
-            <div class="btn">Starten</div>
-        </a>
-
-        <a href="sandbox.html" class="card dev">
-            <h2>Anatomy Sandbox</h2>
-            <p>Experimentelle Ansicht zur Zerlegung der Aorta-Modelle und zur Überprüfung der Mesh-Strukturen.</p>
-            <div class="btn">Starten</div>
-        </a>
-
-    </div>
-
-    <div class="footer">
-        AORTA SCROLLYTELLING PROJECT © 2026
-    </div>
-
-    <script>
-        const navbar = document.querySelector('.navbar');
-        const navToggle = document.querySelector('.nav-toggle');
-        const navLinks = document.querySelector('.nav-links');
-
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 50) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
+    </footer>
+<script type="importmap">
+        {
+            "imports": {
+                "three": "./vendor/three/three.module.js",
+                "three/addons/": "./vendor/three/addons/"
             }
-        });
-
-        if (navToggle) {
-            navToggle.addEventListener('click', () => {
-                navLinks.classList.toggle('active');
-            });
         }
     </script>
+    <script type="module" src="js/modules/scrollytelling.js"></script>
 </body>
 </html>
