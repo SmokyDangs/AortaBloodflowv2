@@ -6,7 +6,7 @@ import { ChartManager } from './ui/ChartManager.js';
 
 let renderer, scene1, scene2, camera1, camera2, controls1;
 let ambient1, ambient2, direct1, direct2;
-let group1, group2, section2Group, rainerGroup, rainerAnatomyGroup, aortaHoleGroup, aortaObj, camS2; 
+let group1, group2, section2Group, rainerGroup, rainerAnatomyGroup, aortaHoleGroup, dnaGroup, aortaObj, camS2; 
 let flow1 = { system: null, data: [], paths: [] };
 let flow2 = { system: null, data: [], paths: [] };
 let posCurve, lookCurve;
@@ -85,16 +85,17 @@ async function init() {
     rainerGroup = new THREE.Group();
     rainerAnatomyGroup = new THREE.Group();
     aortaHoleGroup = new THREE.Group();
-    scene1.add(group1, section2Group, rainerGroup, rainerAnatomyGroup, aortaHoleGroup);
-    scene2.add(group2);
+    dnaGroup = new THREE.Group();
+    scene1.add(group1, group2, section2Group, rainerGroup, rainerAnatomyGroup, aortaHoleGroup, dnaGroup);
+    // scene2.add(group2); // No longer needed for scene2
 
     ambient1 = new THREE.AmbientLight(0xffffff, settings.ambientIntensity);
     direct1 = new THREE.DirectionalLight(0xffffff, settings.directIntensity);
     direct1.position.set(2, 2, 5);
     scene1.add(ambient1, direct1);
-    ambient2 = ambient1.clone();
-    direct2 = direct1.clone();
-    scene2.add(ambient2, direct2);
+    // ambient2 = ambient1.clone(); // Not strictly needed
+    // direct2 = direct1.clone();
+    // scene2.add(ambient2, direct2);
 
     posCurve = new THREE.CatmullRomCurve3(hotspots.map(h => h.pos));
     lookCurve = new THREE.CatmullRomCurve3(hotspots.map(h => h.target));
@@ -106,17 +107,18 @@ async function init() {
     controls1.enableZoom = false; 
     controls1.enablePan = false;  
 
-    const [sickLinesGltf, sickMeshGltf, healthyLinesGltf, healthyMeshGltf, rainerGltf, rainerAnatomyGltf, aortaHoleGltf] = await Promise.all([
+    const [sickLinesGltf, sickMeshGltf, healthyLinesGltf, healthyMeshGltf, rainerGltf, rainerAnatomyGltf, aortaHoleGltf, dnaGltf] = await Promise.all([
         loader.loadModel('assets/models/sick_aorta_pathlines.glb'),
         loader.loadModel('assets/models/sick_aorta_mesh.glb'),
         loader.loadModel('assets/models/healthy_aorta_pathlines.glb'),
         loader.loadModel('assets/models/healthy_aorta_mesh.glb'),
         loader.loadModel('assets/models/rainer.glb'),
         loader.loadModel('assets/models/rainer_anatomy.glb'),
-        loader.loadModel('assets/models/aorta_hole.glb')
+        loader.loadModel('assets/models/aorta_hole.glb'),
+        loader.loadModel('assets/models/dna.glb')
     ]);
 
-    console.log("Models loaded:", { sickLinesGltf, sickMeshGltf, healthyLinesGltf, healthyMeshGltf, rainerGltf, rainerAnatomyGltf, aortaHoleGltf });
+    console.log("Models loaded:", { sickLinesGltf, sickMeshGltf, healthyLinesGltf, healthyMeshGltf, rainerGltf, rainerAnatomyGltf, aortaHoleGltf, dnaGltf });
 
     if (sickMeshGltf) group1.add(loader.processWall(sickMeshGltf.scene, settings));
     if (sickLinesGltf) flow1.paths = loader.processPathlines(sickLinesGltf.scene);
@@ -125,15 +127,16 @@ async function init() {
 
     if (rainerGltf) {
         rainerGroup.add(rainerGltf.scene);
-        console.log("Rainer added, children:", rainerGroup.children.length);
     }
     if (rainerAnatomyGltf) {
         rainerAnatomyGroup.add(rainerAnatomyGltf.scene);
-        console.log("Rainer Anatomy added, children:", rainerAnatomyGroup.children.length);
     }
     if (aortaHoleGltf) {
-        aortaHoleGroup.add(aortaHoleGltf.scene); // Original Shader
-        console.log("Aorta Hole added, children:", aortaHoleGroup.children.length);
+        aortaHoleGroup.add(aortaHoleGltf.scene);
+    }
+    if (dnaGltf) {
+        dnaGroup.add(dnaGltf.scene);
+        console.log("DNA added, children:", dnaGroup.children.length);
     }
 
     applyResponsiveAortaLayout();
@@ -201,7 +204,7 @@ function applyResponsiveAortaLayout(section = 0) {
     const mobilePortrait = window.innerWidth <= 820;
     const yTarget = mobilePortrait ? 100 : 200; 
 
-    [group1, group2, rainerGroup, rainerAnatomyGroup, aortaHoleGroup, section2Group].forEach((group) => {
+    [group1, group2, rainerGroup, rainerAnatomyGroup, aortaHoleGroup, section2Group, dnaGroup].forEach((group) => {
         if (!group || group.children.length === 0) return;
         
         group.position.set(0, 0, 0);
@@ -211,6 +214,8 @@ function applyResponsiveAortaLayout(section = 0) {
             group.rotation.set(0, Math.PI, 0); 
         } else if (group === aortaHoleGroup) {
             group.rotation.set(0, Math.PI, 0); // 180 Grad Drehung für Defekt-Ansicht
+        } else if (group === dnaGroup) {
+            group.rotation.set(0, 0, 0);
         } else if (group !== section2Group) {
             group.rotation.set(-Math.PI * 0.5, 0, 0);
         }
@@ -382,37 +387,28 @@ function renderScene(currentSection, width, height) {
         return;
     }
 
-    let split = 0.0;
-    if (currentSection >= 5 && currentSection <= 12) split = 0.5;
-    else if (currentSection === 0 || currentSection === 3 || currentSection >= 15) split = 1.0;
-    else split = 0.0;
-
-    const w1 = Math.floor(width * (1 - split)), w2 = width - w1;
-    if (w1 > 0) {
-        camera1.aspect = w1 / height; camera1.updateProjectionMatrix();
-        renderer.setViewport(0, 0, w1, height); renderer.setScissor(0, 0, w1, height);
-        renderer.render(scene1, camera1);
-    }
-    if (w2 > 0) {
-        camera2.position.copy(camera1.position); camera2.quaternion.copy(camera1.quaternion);
-        camera2.aspect = w2 / height; camera2.updateProjectionMatrix();
-        renderer.setViewport(w1, 0, w2, height); renderer.setScissor(w1, 0, w2, height);
-        renderer.render(scene2, camera2);
-    }
+    // Einzelansicht: Immer scene1
+    camera1.aspect = width / height; camera1.updateProjectionMatrix();
+    renderer.setViewport(0, 0, width, height); renderer.setScissor(0, 0, width, height);
+    renderer.render(scene1, camera1);
 }
 
 function update3DVisibility(section) {
-    group1.visible = group2.visible = section2Group.visible = rainerGroup.visible = rainerAnatomyGroup.visible = aortaHoleGroup.visible = false;
+    group1.visible = group2.visible = section2Group.visible = rainerGroup.visible = rainerAnatomyGroup.visible = aortaHoleGroup.visible = dnaGroup.visible = false;
     if (flow1.system) flow1.system.visible = false;
     if (flow2.system) flow2.system.visible = false;
 
     const rainerAnatomyPlaceholder = document.getElementById('rainer-anatomy-placeholder');
     const aortaHolePlaceholder = document.getElementById('aorta-hole-placeholder');
+    const dnaPlaceholder6 = document.getElementById('s6-placeholder');
+    const dnaPlaceholder8 = document.getElementById('s8-placeholder');
     if (rainerAnatomyPlaceholder) rainerAnatomyPlaceholder.style.display = 'none';
     if (aortaHolePlaceholder) aortaHolePlaceholder.style.display = 'none';
+    if (dnaPlaceholder6) dnaPlaceholder6.style.display = 'none';
+    if (dnaPlaceholder8) dnaPlaceholder8.style.display = 'none';
 
     if (section === 0) { 
-        group2.visible = true; 
+        group2.visible = true;
         if (flow2.system) flow2.system.visible = true; 
     }
     else if (section === 1) { 
@@ -435,11 +431,25 @@ function update3DVisibility(section) {
             if (aortaHolePlaceholder) aortaHolePlaceholder.style.display = 'block';
         }
     }
-    else if (section === 5 || section === 6) { 
+    else if (section === 5) { // Sektion 6
+        if (dnaGroup.children.length > 0) {
+            dnaGroup.visible = true;
+        } else if (dnaPlaceholder6) {
+            dnaPlaceholder6.style.display = 'block';
+        }
+    }
+    else if (section === 6) { 
         group1.visible = true; 
         section2Group.visible = true; 
     }
-    else if (section >= 7 && section <= 9) group1.visible = true;
+    else if (section === 7) { // Sektion 8
+        if (dnaGroup.children.length > 0) {
+            dnaGroup.visible = true;
+        } else if (dnaPlaceholder8) {
+            dnaPlaceholder8.style.display = 'block';
+        }
+    }
+    else if (section >= 8 && section <= 9) group1.visible = true;
     else if (section === 10) { group1.visible = true; if (flow1.system) flow1.system.visible = true; }
     else if (section >= 11 && section <= 14) group1.visible = true;
     else if (section >= 15) group2.visible = true;
