@@ -3,10 +3,14 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Loader } from './core/Loader.js';
 import { FlowSystem } from './effects/FlowSystem.js';
 import { ChartManager } from './ui/ChartManager.js';
+import { renderStoryPage } from './storyRenderer.js?v=2';
+
+const storyConfig = renderStoryPage();
 
 let renderer, scene1, scene2, camera1, camera2, controls1;
 let ambient1, ambient2, direct1, direct2;
 let group1, group2, section2Group, rainerGroup, rainerAnatomyGroup, aortaHoleGroup, dnaGroup, aortaObj, camS2; 
+let visualStatusLabel, visualStatusTitle;
 let flow1 = { system: null, data: [], paths: [] };
 let flow2 = { system: null, data: [], paths: [] };
 let posCurve, lookCurve;
@@ -39,6 +43,7 @@ const hotspots = [
     { pos: new THREE.Vector3(300, 300, 800), target: new THREE.Vector3(0, 200, 0) }, // S17
     { pos: new THREE.Vector3(0, 200, radiusNormal), target: new THREE.Vector3(0, 200, 0) }  // S18
 ];
+const storySectionCount = storyConfig.sections.length;
 
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const settings = {
@@ -53,8 +58,8 @@ const settings = {
     colorSlow: "#ff4444",
     colorFast: "#ff4444",
     colorMode: 'Solid',
-    aortaOpacity: 0.15,
-    aortaColor: "#888888",
+    aortaOpacity: 0.26,
+    aortaColor: "#ffffff",
     wireframe: false,
     ambientIntensity: 1.0,
     directIntensity: 2.5,
@@ -63,6 +68,52 @@ const settings = {
 };
 
 const flowSystem = new FlowSystem(settings);
+
+const sectionVisualLabels = [
+    'Gesunde Aorta mit Blutfluss',
+    'Patientenmodell',
+    'Anatomische Uebersicht',
+    'Gesunde Anatomie',
+    'Pathologische Veraenderung',
+    'Biologische Ursache',
+    'Risikoprofil und Aorta',
+    'Symptome und Warnzeichen',
+    'Diagnostische Ansicht',
+    'Bildgebung und Planung',
+    'Dynamischer Blutfluss',
+    'Krankheitsstadium',
+    'Therapieplanung',
+    'Intervention',
+    'Risiko-Nutzen-Abwaegung',
+    'Stabilisierte Aorta',
+    'Nachsorge und Kontrolle',
+    'Zusammenfassung'
+];
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(value, max));
+}
+
+function enhanceModelMaterials(group, color = 0xff4444) {
+    if (!group) return;
+
+    group.traverse((child) => {
+        if (!child.isMesh || !child.material) return;
+
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => {
+            material.side = THREE.DoubleSide;
+            material.transparent = true;
+            material.opacity = Math.max(material.opacity || 0, child.name === 'AortaWall' ? settings.aortaOpacity : 0.72);
+            if (material.color) material.color.lerp(new THREE.Color(color), 0.24);
+            if (material.emissive) {
+                material.emissive = new THREE.Color(color);
+                material.emissiveIntensity = child.name === 'AortaWall' ? 0.08 : 0.04;
+            }
+            material.needsUpdate = true;
+        });
+    });
+}
 
 async function init() {
     renderer = new THREE.WebGLRenderer({ antialias: !isMobile, alpha: true, powerPreference: "high-performance" });
@@ -73,11 +124,14 @@ async function init() {
     renderer.setScissorTest(true);
     renderer.setClearColor(settings.bgColor);
     container.appendChild(renderer.domElement);
+    createVisualStatus();
 
     scene1 = new THREE.Scene();
     scene2 = new THREE.Scene();
-    scene1.background = new THREE.Color(settings.bgColor);
-    scene2.background = new THREE.Color(settings.bgColor);
+    scene1.background = new THREE.Color(0x020203);
+    scene2.background = new THREE.Color(0x020203);
+    scene1.fog = new THREE.FogExp2(0x050507, 0.00085);
+    scene2.fog = new THREE.FogExp2(0x050507, 0.00085);
 
     group1 = new THREE.Group();
     group2 = new THREE.Group();
@@ -92,7 +146,11 @@ async function init() {
     ambient1 = new THREE.AmbientLight(0xffffff, settings.ambientIntensity);
     direct1 = new THREE.DirectionalLight(0xffffff, settings.directIntensity);
     direct1.position.set(2, 2, 5);
-    scene1.add(ambient1, direct1);
+    const fillLight = new THREE.DirectionalLight(0xff7777, 0.9);
+    fillLight.position.set(-4, 1, -3);
+    const rimLight = new THREE.DirectionalLight(0x66dfff, 1.25);
+    rimLight.position.set(4, 5, -6);
+    scene1.add(ambient1, direct1, fillLight, rimLight);
     // ambient2 = ambient1.clone(); // Not strictly needed
     // direct2 = direct1.clone();
     // scene2.add(ambient2, direct2);
@@ -104,8 +162,14 @@ async function init() {
     camera2 = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 10000);
     controls1 = new OrbitControls(camera1, renderer.domElement);
     controls1.enableDamping = true;
+    controls1.dampingFactor = 0.08;
     controls1.enableZoom = false; 
     controls1.enablePan = false;  
+
+    setupUI();
+    updateCameraScroll();
+    window.addEventListener('scroll', requestRender, { passive: true });
+    controls1.addEventListener('change', requestRender);
 
     const [sickLinesGltf, sickMeshGltf, healthyLinesGltf, healthyMeshGltf, rainerGltf, rainerAnatomyGltf, aortaHoleGltf, dnaGltf] = await Promise.all([
         loader.loadModel('assets/models/sick_aorta_pathlines.glb'),
@@ -139,6 +203,13 @@ async function init() {
         console.log("DNA added, children:", dnaGroup.children.length);
     }
 
+    enhanceModelMaterials(group1, 0xffffff);
+    enhanceModelMaterials(group2, 0xffffff);
+    enhanceModelMaterials(rainerGroup, 0xffb07a);
+    enhanceModelMaterials(rainerAnatomyGroup, 0xff7777);
+    enhanceModelMaterials(aortaHoleGroup, 0xff4f4f);
+    enhanceModelMaterials(dnaGroup, 0x6ee7ff);
+
     applyResponsiveAortaLayout();
     flowSystem.createSystem(flow1, group1);
     flowSystem.createSystem(flow2, group2);
@@ -153,13 +224,24 @@ async function init() {
             if (entries[0].isIntersecting) loadSection2Models();
         }, { threshold: 0.1 }).observe(anatomySection);
     }
-    setupUI();
     chartManager.init();
-    setupTechTerms();
 
-    // Smart Rendering: Hook requestRender to events
-    window.addEventListener('scroll', requestRender, { passive: true });
-    controls1.addEventListener('change', requestRender);
+    requestRender();
+}
+
+function createVisualStatus() {
+    const rightColumn = document.querySelector('.right-column');
+    if (!rightColumn) return;
+
+    const status = document.createElement('div');
+    status.className = 'visual-status';
+    status.innerHTML = `
+        <span class="visual-status-label">${storyConfig.title}</span>
+        <span class="visual-status-title">3D-Modell wird geladen</span>
+    `;
+    rightColumn.appendChild(status);
+    visualStatusLabel = status.querySelector('.visual-status-label');
+    visualStatusTitle = status.querySelector('.visual-status-title');
 }
 
 function setupTechTerms() {
@@ -203,6 +285,7 @@ let baseScales = new Map();
 function applyResponsiveAortaLayout(section = 0) {
     const mobilePortrait = window.innerWidth <= 820;
     const yTarget = mobilePortrait ? 100 : 200; 
+    const fitSize = mobilePortrait ? 420 : 620;
 
     [group1, group2, rainerGroup, rainerAnatomyGroup, aortaHoleGroup, section2Group, dnaGroup].forEach((group) => {
         if (!group || group.children.length === 0) return;
@@ -226,12 +309,16 @@ function applyResponsiveAortaLayout(section = 0) {
         const maxDim = Math.max(size.x, size.y, size.z);
         
         // Skalierung berechnen (Auto-Fit)
-        let targetScale = 450 / maxDim;
+        let targetScale = fitSize / maxDim;
 
         // Nur für die Standard-Aorta Modelle im Vergleichsmodus (S4, S6-S12)
         // nutzen wir einen festen Faktor für die Vergleichbarkeit.
-        if ((group === group1 || group === group2) && (section === 3 || section >= 5)) {
-            targetScale = 1.4;
+        if (group === group1) {
+            targetScale = mobilePortrait ? 1.08 : 1.34;
+        }
+
+        if (group === group2) {
+            targetScale = mobilePortrait ? 1.62 : 2.08;
         }
 
         group.scale.setScalar(targetScale);
@@ -251,34 +338,76 @@ let isRendering = true;
 let lastScrollY = -1;
 let currentSectionIdx = -1;
 
+function getScrollState() {
+    const steps = Array.from(document.querySelectorAll('#story .step'));
+    if (!steps.length) {
+        return { currentSection: 0, sectionT: 0, cameraT: 0 };
+    }
+
+    const marker = window.innerHeight * (window.innerWidth <= 820 ? 0.62 : 0.5);
+    let currentSection = 0;
+    let smallestDistance = Infinity;
+
+    steps.forEach((step, index) => {
+        const rect = step.getBoundingClientRect();
+        const containsMarker = rect.top <= marker && rect.bottom >= marker;
+        const distance = containsMarker ? 0 : Math.min(Math.abs(rect.top - marker), Math.abs(rect.bottom - marker));
+
+        if (distance < smallestDistance) {
+            smallestDistance = distance;
+            currentSection = index;
+        }
+    });
+
+    const activeStep = steps[currentSection];
+    const start = activeStep.offsetTop;
+    const range = Math.max(1, activeStep.offsetHeight - window.innerHeight * 0.4);
+    const sectionT = clamp((window.scrollY - start + window.innerHeight * 0.28) / range, 0, 1);
+    const cameraT = clamp((currentSection + sectionT) / Math.max(1, storySectionCount - 1), 0, 1);
+
+    return { currentSection, sectionT, cameraT };
+}
+
+function setActiveStep(sectionIndex) {
+    document.querySelectorAll('#story .step').forEach((step, index) => {
+        step.classList.toggle('active', index === sectionIndex);
+    });
+}
+
+function updateVisualStatus(sectionIndex) {
+    if (!visualStatusLabel || !visualStatusTitle) return;
+
+    visualStatusLabel.textContent = `${storyConfig.title} · ${sectionIndex + 1}/${storySectionCount}`;
+    visualStatusTitle.textContent = sectionVisualLabels[sectionIndex] || 'Interaktive 3D-Ansicht';
+}
+
 function updateCameraScroll() {
-    const scrollY = window.scrollY;
-    if (scrollY === lastScrollY) return;
-    lastScrollY = scrollY;
+    const scrollState = getScrollState();
     const h = window.innerHeight;
-    const stepHeight = h * 2.5; 
-    const totalHeight = (hotspots.length - 1) * stepHeight;
-    const t = Math.max(0, Math.min(scrollY / totalHeight, 1));
-    const currentSection = Math.floor(t * (hotspots.length - 1));
 
     // Divider komplett entfernt (ab Sektion 4 und generell)
     document.body.classList.remove('in-comparison');
 
     const progressBar = document.getElementById('progress-bar');
-    if (progressBar) progressBar.style.width = `${(scrollY / (document.documentElement.scrollHeight - h)) * 100}%`;
-
-    posCurve.getPoint(t, camera1.position);
-    lookCurve.getPoint(t, controls1.target);
-    if (window.innerWidth <= 820) {
-        camera1.position.set(0, 0, 900);
-        controls1.target.set(0, 0, 0);
+    if (progressBar) {
+        const progress = clamp(window.scrollY / Math.max(1, document.documentElement.scrollHeight - h), 0, 1);
+        progressBar.style.width = `${progress * 100}%`;
     }
-    updateNavLinks(currentSection);
+
+    posCurve.getPoint(scrollState.cameraT, camera1.position);
+    lookCurve.getPoint(scrollState.cameraT, controls1.target);
+    if (window.innerWidth <= 820) {
+        camera1.position.lerp(new THREE.Vector3(0, 70, 850), 0.65);
+        controls1.target.lerp(new THREE.Vector3(0, 90, 0), 0.65);
+    }
+    setActiveStep(scrollState.currentSection);
+    updateNavLinks(scrollState.currentSection);
+    updateVisualStatus(scrollState.currentSection);
+
+    return scrollState;
 }
 
 function updateNavLinks(sectionIndex) {
-    const navLinks = document.querySelectorAll('.nav-links a, .nav-menu-mobile a');
-    navLinks.forEach(link => link.classList.remove('active'));
     let navIndex = 0;
     if (sectionIndex >= 15) navIndex = 6; 
     else if (sectionIndex >= 12) navIndex = 5; 
@@ -286,8 +415,13 @@ function updateNavLinks(sectionIndex) {
     else if (sectionIndex >= 7) navIndex = 3; 
     else if (sectionIndex >= 5) navIndex = 2; 
     else if (sectionIndex >= 3) navIndex = 1; 
-    else navIndex = 0; 
-    if (navLinks[navIndex]) navLinks[navIndex].classList.add('active');
+    else navIndex = 0;
+
+    [document.querySelectorAll('.nav-links a'), document.querySelectorAll('.nav-menu-mobile a')].forEach((links) => {
+        links.forEach((link, index) => {
+            link.classList.toggle('active', index === navIndex);
+        });
+    });
 }
 
 let isAnimating = false;
@@ -304,15 +438,9 @@ function animate() {
         return;
     }
     
-    updateCameraScroll();
-    
-    const scrollY = window.scrollY;
-    const h = window.innerHeight;
-    const stepHeight = h * 2.5; 
-    const totalHeight = (hotspots.length - 1) * stepHeight;
-    const t = Math.max(0, Math.min(scrollY / totalHeight, 1));
-    const currentSection = Math.floor(t * (hotspots.length - 1));
-    const sectionT = (t * (hotspots.length - 1)) % 1; 
+    const scrollState = updateCameraScroll();
+    const currentSection = scrollState.currentSection;
+    const sectionT = scrollState.sectionT;
 
     // Rotation Limits for Aorta Hole (S5)
     if (currentSection === 4) {
@@ -333,16 +461,21 @@ function animate() {
     }
 
     // Entrance Animation
-    const animFactor = Math.min(1, sectionT * 4); 
+    const animFactor = Math.min(1, 0.25 + sectionT * 1.4); 
 
-    [group1, group2, rainerGroup, rainerAnatomyGroup, section2Group].forEach(group => {
+    [group1, group2, rainerGroup, rainerAnatomyGroup, section2Group, aortaHoleGroup, dnaGroup].forEach(group => {
         if (group && group.visible) {
             const base = baseScales.get(group) || 1;
-            group.scale.setScalar(base * (0.8 + 0.2 * animFactor));
+            const pulse = 1 + Math.sin(sectionT * Math.PI) * 0.035;
+            group.scale.setScalar(base * (0.92 + 0.08 * animFactor) * pulse);
             group.traverse(child => {
-                if (child.isMesh && child.material && child.material.transparent) {
-                    const originalOpacity = (child.name === "AortaWall") ? settings.aortaOpacity : 1.0;
-                    child.material.opacity = originalOpacity * animFactor;
+                if (child.isMesh && child.material) {
+                    const materials = Array.isArray(child.material) ? child.material : [child.material];
+                    materials.forEach((material) => {
+                        if (!material.transparent) return;
+                        const originalOpacity = (child.name === "AortaWall") ? settings.aortaOpacity : Math.max(material.opacity || 0.72, 0.72);
+                        material.opacity = Math.max(0.18, originalOpacity * animFactor);
+                    });
                 }
             });
         }
@@ -457,24 +590,6 @@ function update3DVisibility(section) {
 
 document.addEventListener('visibilitychange', () => { isRendering = !document.hidden; if (isRendering) animate(); });
 function setupUI() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('active');
-            } else {
-                // Nur entfernen wenn wir weit weg sind um Flackern zu vermeiden
-                if (entry.boundingClientRect.top > window.innerHeight || entry.boundingClientRect.bottom < 0) {
-                    entry.target.classList.remove('active');
-                }
-            }
-        });
-    }, { 
-        threshold: 0.1,
-        rootMargin: "-20% 0px -20% 0px" // Trigger wenn Karte in der Mitte ist
-    });
-    
-    document.querySelectorAll('.step').forEach(step => observer.observe(step));
-    
     const navToggle = document.getElementById('nav-toggle');
     const navMenu = document.getElementById('nav-menu-mobile');
     if (navToggle && navMenu) navToggle.addEventListener('click', () => navMenu.classList.toggle('active'));
