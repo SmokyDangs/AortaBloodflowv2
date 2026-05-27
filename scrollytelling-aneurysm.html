@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aorta Project - Aortenaneurysma</title>
+    <link rel="stylesheet" href="css/style.css?v=7">
+</head>
+<body data-story-version="aneurysm">
+    <nav class="navbar">
+        <a href="index.html" class="nav-logo">Aorta <span>Story</span></a>
+        <div class="nav-toggle" id="nav-toggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul class="nav-links" id="nav-links"></ul>
+    </nav>
+
+    <div class="nav-menu-mobile" id="nav-menu-mobile">
+        <ul></ul>
+    </div>
+    <div id="progress-bar"></div>
+
+    <div class="scrolly-layout">
+        <div class="left-column">
+            <main id="story"></main>
+        </div>
+        <div class="right-column">
+            <div id="container3d"></div>
+            <div id="stent-placeholder">[PLATZHALTER: 3D-MODELL STENT-GRAFT]</div>
+            <div id="rainer-anatomy-placeholder" class="stent-placeholder-style">[PLATZHALTER: 3D-MODELL RAINER ANATOMIE]</div>
+            <div id="aorta-hole-placeholder" class="stent-placeholder-style">[PLATZHALTER: 3D-MODELL AORTA LOCH]</div>
+        </div>
+    </div>
+
+    <footer class="main-footer">
+        <div class="footer-content">
+            <p>&copy; 2026 Aorta Scrollytelling Project. Alle Rechte vorbehalten.</p>
+            <div class="footer-links">
+                <a href="#">Impressum</a>
+                <a href="#">Datenschutz</a>
+                <a href="index.html">Dashboard</a>
+            </div>
+        </div>
+    </footer>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./vendor/three/three.module.js",
+                "three/addons/": "./vendor/three/addons/"
+            }
+        }
+    </script>
+    <script type="module" src="js/modules/scrollytelling.js?v=7"></script>
+</body>
+</html>
