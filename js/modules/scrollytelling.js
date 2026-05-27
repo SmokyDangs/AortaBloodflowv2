@@ -3,9 +3,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Loader } from './core/Loader.js';
 import { FlowSystem } from './effects/FlowSystem.js';
 import { ChartManager } from './ui/ChartManager.js';
-import { renderStoryPage } from './storyRenderer.js?v=2';
+import { getEditorState, getUploadedModelEntries, getUploadedModelUrl, initStoryEditor } from './editor.js';
+import { renderStoryPage } from './storyRenderer.js?v=8';
 
 const storyConfig = renderStoryPage();
+const storyVersion = document.body.dataset.storyVersion || 'aneurysm';
 
 let renderer, scene1, scene2, camera1, camera2, controls1;
 let ambient1, ambient2, direct1, direct2;
@@ -14,6 +16,8 @@ let visualStatusLabel, visualStatusTitle;
 let flow1 = { system: null, data: [], paths: [] };
 let flow2 = { system: null, data: [], paths: [] };
 let posCurve, lookCurve;
+const customSectionGroups = new Map();
+const modelOverrides = new Map();
 
 const loader = new Loader();
 const chartManager = new ChartManager();
@@ -69,6 +73,22 @@ const settings = {
 
 const flowSystem = new FlowSystem(settings);
 
+const editorModelOptions = [
+    { id: 'healthy-aorta', label: 'Gesunde Aorta', url: 'assets/models/healthy_aorta_mesh.glb', color: 0xffffff, wall: true },
+    { id: 'sick-aorta', label: 'Pathologische Aorta', url: 'assets/models/sick_aorta_mesh.glb', color: 0xff7777, wall: true },
+    { id: 'rainer', label: 'Patient Rainer', url: 'assets/models/rainer.glb', color: 0xffb07a },
+    { id: 'rainer-anatomy', label: 'Rainer Anatomie', url: 'assets/models/rainer_anatomy.glb', color: 0xff7777 },
+    { id: 'aorta-hole', label: 'Aorta Defekt', url: 'assets/models/aorta_hole.glb', color: 0xff4f4f },
+    { id: 'dna', label: 'DNA / Biologie', url: 'assets/models/dna.glb', color: 0x6ee7ff },
+    { id: 'heart', label: 'Herz', url: 'assets/models/anatomy/VH_M_Heart.glb', color: 0xff7777 },
+    { id: 'vasculature', label: 'Blutgefaesse', url: 'assets/models/anatomy/VH_M_Blood_Vasculature.glb', color: 0xff7777 },
+    { id: 'kidney-left', label: 'Niere links', url: 'assets/models/anatomy/VH_M_Kidney_L.glb', color: 0x6ee7ff },
+    { id: 'kidney-right', label: 'Niere rechts', url: 'assets/models/anatomy/VH_M_Kidney_R.glb', color: 0x6ee7ff },
+    { id: 'liver', label: 'Leber', url: 'assets/models/anatomy/VH_M_Liver.glb', color: 0xffb07a },
+    { id: 'lung', label: 'Lunge', url: 'assets/models/anatomy/3d-vh-f-lung.glb', color: 0x6ee7ff },
+    { id: 'skin', label: 'Koerperhuelle', url: 'assets/models/anatomy/3d-vh-m-skin.glb', color: 0xffffff }
+];
+
 const sectionVisualLabels = [
     'Gesunde Aorta mit Blutfluss',
     'Patientenmodell',
@@ -113,6 +133,108 @@ function enhanceModelMaterials(group, color = 0xff4444) {
             material.needsUpdate = true;
         });
     });
+}
+
+function getLayoutGroups() {
+    return [group1, group2, rainerGroup, rainerAnatomyGroup, aortaHoleGroup, section2Group, dnaGroup, ...customSectionGroups.values()];
+}
+
+function getEditorOption(modelId) {
+    return editorModelOptions.find((option) => option.id === modelId);
+}
+
+async function createEditorModelGroup(modelId) {
+    const option = getEditorOption(modelId);
+    if (!option) return null;
+
+    const gltf = await loader.loadModel(option.url);
+    if (!gltf) return null;
+
+    const group = new THREE.Group();
+    const model = option.wall ? loader.processWall(gltf.scene, settings) : gltf.scene;
+    group.add(model);
+    group.visible = false;
+    group.userData.editorModelId = modelId;
+    scene1.add(group);
+    enhanceModelMaterials(group, option.color);
+    return group;
+}
+
+async function createEditorModelGroupFromUrl(url, label = 'uploaded-glb') {
+    const gltf = await loader.loadModel(url);
+    if (!gltf) return null;
+
+    const group = new THREE.Group();
+    group.add(gltf.scene);
+    group.visible = false;
+    group.userData.editorModelId = 'uploaded';
+    group.userData.editorModelLabel = label;
+    scene1.add(group);
+    enhanceModelMaterials(group, 0xffffff);
+    return group;
+}
+
+async function setSectionEditorModel(sectionIndex, modelId) {
+    const existing = customSectionGroups.get(sectionIndex);
+    if (existing) {
+        scene1.remove(existing);
+        customSectionGroups.delete(sectionIndex);
+    }
+
+    if (!modelId) {
+        modelOverrides.delete(sectionIndex);
+        update3DVisibility(getScrollState().currentSection);
+        requestRender();
+        return;
+    }
+
+    modelOverrides.set(sectionIndex, modelId);
+    const group = await createEditorModelGroup(modelId);
+    if (!group) return;
+
+    customSectionGroups.set(sectionIndex, group);
+    applyResponsiveAortaLayout();
+    update3DVisibility(getScrollState().currentSection);
+    requestRender();
+}
+
+async function setSectionEditorModelFile(sectionIndex, url, label) {
+    const existing = customSectionGroups.get(sectionIndex);
+    if (existing) {
+        scene1.remove(existing);
+        customSectionGroups.delete(sectionIndex);
+    }
+
+    modelOverrides.set(sectionIndex, 'uploaded');
+    const group = await createEditorModelGroupFromUrl(url, label);
+    if (!group) return;
+
+    customSectionGroups.set(sectionIndex, group);
+    applyResponsiveAortaLayout();
+    update3DVisibility(getScrollState().currentSection);
+    requestRender();
+}
+
+function resetSectionEditorModel(sectionIndex) {
+    const existing = customSectionGroups.get(sectionIndex);
+    if (existing) scene1.remove(existing);
+    customSectionGroups.delete(sectionIndex);
+    modelOverrides.delete(sectionIndex);
+    update3DVisibility(getScrollState().currentSection);
+    requestRender();
+}
+
+async function applySavedEditorModels() {
+    const savedModels = getEditorState(storyVersion).models || {};
+    for (const [sectionIndex, modelId] of Object.entries(savedModels)) {
+        await setSectionEditorModel(Number(sectionIndex), modelId);
+    }
+
+    const uploadedEntries = await getUploadedModelEntries(storyVersion);
+    for (const entry of uploadedEntries) {
+        const uploaded = await getUploadedModelUrl(storyVersion, entry.sectionIndex);
+        if (uploaded) await setSectionEditorModelFile(entry.sectionIndex, uploaded.url, uploaded.name);
+    }
 }
 
 async function init() {
@@ -225,6 +347,21 @@ async function init() {
         }, { threshold: 0.1 }).observe(anatomySection);
     }
     chartManager.init();
+    await applySavedEditorModels();
+    initStoryEditor({
+        version: storyVersion,
+        storyConfig,
+        modelOptions: editorModelOptions,
+        getCurrentSection: () => getScrollState().currentSection,
+        setSectionModel: setSectionEditorModel,
+        setSectionModelFile: setSectionEditorModelFile,
+        resetSectionModel: resetSectionEditorModel,
+        exportState: () => ({
+            version: storyVersion,
+            savedAt: new Date().toISOString(),
+            changes: getEditorState(storyVersion)
+        })
+    });
 
     requestRender();
 }
@@ -287,17 +424,21 @@ function applyResponsiveAortaLayout(section = 0) {
     const yTarget = mobilePortrait ? 100 : 200; 
     const fitSize = mobilePortrait ? 420 : 620;
 
-    [group1, group2, rainerGroup, rainerAnatomyGroup, aortaHoleGroup, section2Group, dnaGroup].forEach((group) => {
+    getLayoutGroups().forEach((group) => {
         if (!group || group.children.length === 0) return;
         
         group.position.set(0, 0, 0);
         group.scale.setScalar(1); // Reset für Messung
 
-        if (group === rainerGroup || group === rainerAnatomyGroup) {
+        const editorModelId = group.userData?.editorModelId;
+        const editorNeedsPatientRotation = ['rainer', 'rainer-anatomy', 'aorta-hole'].includes(editorModelId);
+        const editorKeepsNativeRotation = ['uploaded', 'dna', 'heart', 'vasculature', 'kidney-left', 'kidney-right', 'liver', 'lung', 'skin'].includes(editorModelId);
+
+        if (group === rainerGroup || group === rainerAnatomyGroup || editorNeedsPatientRotation) {
             group.rotation.set(0, Math.PI, 0); 
         } else if (group === aortaHoleGroup) {
             group.rotation.set(0, Math.PI, 0); // 180 Grad Drehung für Defekt-Ansicht
-        } else if (group === dnaGroup) {
+        } else if (group === dnaGroup || editorKeepsNativeRotation) {
             group.rotation.set(0, 0, 0);
         } else if (group !== section2Group) {
             group.rotation.set(-Math.PI * 0.5, 0, 0);
@@ -463,7 +604,7 @@ function animate() {
     // Entrance Animation
     const animFactor = Math.min(1, 0.25 + sectionT * 1.4); 
 
-    [group1, group2, rainerGroup, rainerAnatomyGroup, section2Group, aortaHoleGroup, dnaGroup].forEach(group => {
+    getLayoutGroups().forEach(group => {
         if (group && group.visible) {
             const base = baseScales.get(group) || 1;
             const pulse = 1 + Math.sin(sectionT * Math.PI) * 0.035;
@@ -528,6 +669,9 @@ function renderScene(currentSection, width, height) {
 
 function update3DVisibility(section) {
     group1.visible = group2.visible = section2Group.visible = rainerGroup.visible = rainerAnatomyGroup.visible = aortaHoleGroup.visible = dnaGroup.visible = false;
+    customSectionGroups.forEach((group) => {
+        group.visible = false;
+    });
     if (flow1.system) flow1.system.visible = false;
     if (flow2.system) flow2.system.visible = false;
 
@@ -539,6 +683,12 @@ function update3DVisibility(section) {
     if (aortaHolePlaceholder) aortaHolePlaceholder.style.display = 'none';
     if (dnaPlaceholder6) dnaPlaceholder6.style.display = 'none';
     if (dnaPlaceholder8) dnaPlaceholder8.style.display = 'none';
+
+    const editorGroup = customSectionGroups.get(section);
+    if (editorGroup) {
+        editorGroup.visible = true;
+        return;
+    }
 
     if (section === 0) { 
         group2.visible = true;

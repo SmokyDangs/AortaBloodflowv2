@@ -1,3 +1,4 @@
+import { getEffectiveStoryConfig } from './editor.js';
 import { storyVersions } from './storyContent.js?v=2';
 
 const iconLibrary = {
@@ -75,8 +76,10 @@ function collectAbbreviations(section, chart) {
         .map(([abbr, meaning]) => `${abbr} = ${meaning}`);
 }
 
-function renderParagraphs(paragraphs = []) {
-    return paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join('');
+function renderParagraphs(paragraphs = [], sectionIndex = 0) {
+    return paragraphs.map((paragraph, paragraphIndex) => `
+        <p data-edit-path="sections.${sectionIndex}.paragraphs.${paragraphIndex}">${paragraph}</p>
+    `).join('');
 }
 
 function renderStats(section, chart) {
@@ -87,8 +90,8 @@ function renderStats(section, chart) {
         <div class="stats-box">
             <div class="icon-placeholder">${renderIcon(section.statIcon || 'i')}</div>
             <div>
-                <strong>${section.statLabel || 'Info:'}</strong>
-                <span>${section.statText}</span>
+                <strong data-edit-path="sections.${section.__index}.statLabel">${section.statLabel || 'Info:'}</strong>
+                <span data-edit-path="sections.${section.__index}.statText">${section.statText}</span>
                 ${legends.length ? `<small class="abbr-legend">${legends.join(' · ')}</small>` : ''}
             </div>
         </div>
@@ -230,11 +233,11 @@ function renderSections(sections = [], version = 'aneurysm') {
         return `
             <section class="step" id="s${index + 1}">
                 <div class="text-box">
-                    <h2>${section.title}</h2>
-                    ${renderParagraphs(section.paragraphs)}
+                    <h2 data-edit-path="sections.${index}.title">${section.title}</h2>
+                    ${renderParagraphs(section.paragraphs, index)}
                     ${renderPlaceholder(section)}
                     ${renderChart(chart)}
-                    ${renderStats(section, chart)}
+                    ${renderStats({ ...section, __index: index }, chart)}
                     ${renderIconGrid(section.iconGrid)}
                     ${renderIconImages(section.iconImages)}
                 </div>
@@ -250,13 +253,14 @@ function renderNavLinks(config) {
         ...config.nav.map((item, index) => ({
             href: item.href,
             label: item.label,
+            index,
             active: index === 0
         })),
         { href: 'index.html', label: 'Dashboard', active: false }
     ];
 
     const markup = links.map((link) => `
-        <li><a href="${link.href}"${link.active ? ' class="active"' : ''}>${link.label}</a></li>
+        <li><a href="${link.href}"${link.active ? ' class="active"' : ''}${Number.isInteger(link.index) ? ` data-edit-path="nav.${link.index}.label"` : ''}>${link.label}</a></li>
     `).join('');
 
     if (desktopNav) desktopNav.innerHTML = markup;
@@ -270,7 +274,7 @@ export function getStoryVersion() {
 
 export function renderStoryPage() {
     const version = getStoryVersion();
-    const config = storyVersions[version];
+    const config = getEffectiveStoryConfig(version, storyVersions[version]);
     const story = document.getElementById('story');
     const pageTitle = document.querySelector('[data-story-title]');
 
