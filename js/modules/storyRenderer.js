@@ -77,12 +77,19 @@ function collectAbbreviations(section, chart) {
 }
 
 function renderParagraphs(paragraphs = [], sectionIndex = 0) {
+    const editBasePath = typeof sectionIndex === 'string' ? sectionIndex : `sections.${sectionIndex}`;
     return paragraphs.map((paragraph, paragraphIndex) => `
-        <p data-edit-path="sections.${sectionIndex}.paragraphs.${paragraphIndex}">${paragraph}</p>
+        <p data-edit-path="${editBasePath}.paragraphs.${paragraphIndex}">${paragraph}</p>
     `).join('');
 }
 
-function renderStats(section, chart) {
+function clampPercent(value) {
+    const numeric = Number.parseFloat(value);
+    if (Number.isNaN(numeric)) return 0;
+    return Math.max(0, Math.min(100, numeric));
+}
+
+function renderStats(section, chart, editBasePath = `sections.${section.__index}`) {
     if (!section.statText) return '';
     const legends = collectAbbreviations(section, chart);
 
@@ -90,8 +97,8 @@ function renderStats(section, chart) {
         <div class="stats-box">
             <div class="icon-placeholder">${renderIcon(section.statIcon || 'i')}</div>
             <div>
-                <strong data-edit-path="sections.${section.__index}.statLabel">${section.statLabel || 'Info:'}</strong>
-                <span data-edit-path="sections.${section.__index}.statText">${section.statText}</span>
+                <strong data-edit-path="${editBasePath}.statLabel">${section.statLabel || 'Info:'}</strong>
+                <span data-edit-path="${editBasePath}.statText">${section.statText}</span>
                 ${legends.length ? `<small class="abbr-legend">${legends.join(' · ')}</small>` : ''}
             </div>
         </div>
@@ -141,20 +148,21 @@ const chartPresets = {
     ]
 };
 
-function renderChart(chart) {
+function renderChart(chart, editPath = '') {
     if (!chart) return '';
+    const labelPath = editPath ? ` data-edit-path="${editPath}.label"` : '';
 
     if (chart.type === 'meter') {
         return `
             <div class="mini-chart mini-chart-meter">
                 <div class="mini-chart-head">
-                    <strong>${chart.label}</strong>
-                    <span>${chart.value}%</span>
+                    <strong${labelPath}>${chart.label}</strong>
+                    <span${editPath ? ` data-edit-path="${editPath}.value"` : ''}>${chart.value}%</span>
                 </div>
                 <div class="meter-track">
-                    <span style="width: ${chart.value}%"></span>
+                    <span style="width: ${clampPercent(chart.value)}%"></span>
                 </div>
-                ${chart.caption ? `<p>${chart.caption}</p>` : ''}
+                ${chart.caption ? `<p${editPath ? ` data-edit-path="${editPath}.caption"` : ''}>${chart.caption}</p>` : ''}
             </div>
         `;
     }
@@ -163,11 +171,11 @@ function renderChart(chart) {
         return `
             <div class="mini-chart mini-chart-split">
                 <div class="mini-chart-head">
-                    <strong>${chart.label}</strong>
+                    <strong${labelPath}>${chart.label}</strong>
                     <span>${chart.items.map((item) => item.label).join(' / ')}</span>
                 </div>
                 <div class="split-track">
-                    ${chart.items.map((item) => `<span style="flex-basis: ${item.value}%"></span>`).join('')}
+                    ${chart.items.map((item) => `<span style="flex-basis: ${clampPercent(item.value)}%"></span>`).join('')}
                 </div>
             </div>
         `;
@@ -176,14 +184,14 @@ function renderChart(chart) {
     return `
         <div class="mini-chart mini-chart-bars${chart.type === 'flow' ? ' mini-chart-flow' : ''}">
             <div class="mini-chart-head">
-                <strong>${chart.label}</strong>
+                <strong${labelPath}>${chart.label}</strong>
                 <span>Index</span>
             </div>
             <div class="bar-grid">
-                ${chart.items.map((item) => `
+                ${chart.items.map((item, itemIndex) => `
                     <div class="bar-item">
-                        <span class="bar-label">${item.label}</span>
-                        <span class="bar-track"><span style="width: ${item.value}%"></span></span>
+                        <span class="bar-label"${editPath ? ` data-edit-path="${editPath}.items.${itemIndex}.label"` : ''}>${item.label}</span>
+                        <span class="bar-track"><span style="width: ${clampPercent(item.value)}%"></span></span>
                     </div>
                 `).join('')}
             </div>
@@ -216,6 +224,46 @@ function renderIconImages(images = []) {
     `;
 }
 
+function renderElements(elements = [], editBasePath = 'sections.0') {
+    if (!elements.length) return '';
+
+    return elements.map((element, index) => {
+        const elementPath = `${editBasePath}.elements.${index}`;
+
+        if (element.type === 'heading') {
+            return `<h3 class="info-heading" data-edit-path="${elementPath}.text">${element.text || 'Neue Ueberschrift'}</h3>`;
+        }
+
+        if (element.type === 'text') {
+            return `<p class="info-text" data-edit-path="${elementPath}.text">${element.text || 'Neuer Text'}</p>`;
+        }
+
+        if (element.type === 'stat') {
+            return `
+                <div class="stats-box stats-box-extra">
+                    <div class="icon-placeholder">${renderIcon(element.icon || 'A')}</div>
+                    <div>
+                        <strong data-edit-path="${elementPath}.label">${element.label || 'Info:'}</strong>
+                        <span data-edit-path="${elementPath}.text">${element.text || 'Neue Information'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (element.type === 'chart') {
+            return renderChart({
+                type: element.chartType || 'bars',
+                label: element.label || 'Diagramm',
+                value: element.value ?? 60,
+                caption: element.caption,
+                items: element.items || []
+            }, elementPath);
+        }
+
+        return '';
+    }).join('');
+}
+
 function renderPlaceholder(section) {
     if (!section.placeholderId) return '';
 
@@ -229,15 +277,19 @@ function renderPlaceholder(section) {
 function renderSections(sections = [], version = 'aneurysm') {
     return sections.map((section, index) => {
         const chart = section.chart || chartPresets[version]?.[index];
+        const editBasePath = Number.isInteger(section.__extraIndex)
+            ? `extraSections.${section.__extraIndex}`
+            : `sections.${Number.isInteger(section.__baseIndex) ? section.__baseIndex : index}`;
 
         return `
-            <section class="step" id="s${index + 1}">
+            <section class="step" id="s${index + 1}" data-section-index="${index}">
                 <div class="text-box">
-                    <h2 data-edit-path="sections.${index}.title">${section.title}</h2>
-                    ${renderParagraphs(section.paragraphs, index)}
+                    <h2 data-edit-path="${editBasePath}.title">${section.title}</h2>
+                    ${renderParagraphs(section.paragraphs, editBasePath)}
                     ${renderPlaceholder(section)}
                     ${renderChart(chart)}
-                    ${renderStats({ ...section, __index: index }, chart)}
+                    ${renderElements(section.elements, editBasePath)}
+                    ${renderStats({ ...section, __index: index }, chart, editBasePath)}
                     ${renderIconGrid(section.iconGrid)}
                     ${renderIconImages(section.iconImages)}
                 </div>

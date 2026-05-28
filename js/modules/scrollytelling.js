@@ -4,7 +4,7 @@ import { Loader } from './core/Loader.js';
 import { FlowSystem } from './effects/FlowSystem.js';
 import { ChartManager } from './ui/ChartManager.js';
 import { getEditorState, getUploadedModelEntries, getUploadedModelUrl, initStoryEditor } from './editor.js';
-import { renderStoryPage } from './storyRenderer.js?v=8';
+import { renderStoryPage } from './storyRenderer.js?v=11';
 
 const storyConfig = renderStoryPage();
 const storyVersion = document.body.dataset.storyVersion || 'aneurysm';

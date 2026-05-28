@@ -212,6 +212,163 @@ body {
     line-height: 1.32;
 }
 
+.editor-builder {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.045);
+}
+
+.editor-builder-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.editor-builder-head strong {
+    color: #fff;
+    font-size: 0.84rem;
+}
+
+.editor-builder-head button,
+.editor-palette button,
+.editor-element-item button {
+    min-height: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.085);
+    color: #fff;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.editor-builder-head button:hover,
+.editor-palette button:hover,
+.editor-element-item button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.32);
+    background: rgba(255, 255, 255, 0.13);
+}
+
+.editor-palette {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.editor-elements {
+    display: grid;
+    gap: 7px;
+}
+
+.editor-elements p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.54);
+    font-size: 0.74rem;
+    line-height: 1.35;
+}
+
+.editor-element-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.editor-section-builder {
+    display: grid;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.editor-section-builder > strong {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+}
+
+.editor-sections {
+    display: grid;
+    gap: 7px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.editor-section-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.editor-section-item.is-active {
+    border-color: rgba(255, 68, 68, 0.44);
+    background: rgba(255, 68, 68, 0.12);
+}
+
+.editor-section-item button {
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.78);
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: 800;
+    overflow: hidden;
+    padding: 4px 0;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.editor-drag-handle {
+    color: rgba(255, 255, 255, 0.45);
+    cursor: grab;
+    font-size: 0.82rem;
+    font-weight: 900;
+    letter-spacing: -1px;
+    line-height: 1;
+}
+
+.editor-element-item.is-dragging,
+.editor-section-item.is-dragging {
+    opacity: 0.42;
+}
+
+.editor-elements.is-drop-target,
+.editor-sections.is-drop-target,
+.step.editor-drop-target .text-box {
+    border-color: rgba(0, 212, 255, 0.72);
+    background: rgba(0, 212, 255, 0.08);
+}
+
+.editor-element-item span {
+    min-width: 0;
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.76);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .editor-row {
     display: grid;
     gap: 7px;
@@ -451,11 +608,25 @@ body.in-comparison #divider {
     line-height: 1.2;
 }
 
+.text-box .info-heading {
+    margin: 1.15rem 0 0.7rem;
+    color: #fff;
+    font-size: clamp(1.02rem, 1.18vw, 1.18rem);
+    font-weight: 800;
+    line-height: 1.28;
+}
+
 .text-box p {
     font-size: clamp(1rem, 1.05vw, 1.08rem);
     line-height: 1.72;
     color: rgba(255, 255, 255, 0.9);
     margin: 0 0 1rem;
+}
+
+.text-box .info-text {
+    padding-left: 14px;
+    border-left: 3px solid rgba(0, 212, 255, 0.56);
+    color: rgba(255, 255, 255, 0.84);
 }
 
 .text-box p:last-child {
@@ -501,6 +672,10 @@ body.in-comparison #divider {
     padding: 10px;
     border-radius: 12px;
     flex: 0 0 58px;
+}
+
+.stats-box-extra {
+    border-color: rgba(0, 212, 255, 0.22);
 }
 
 .stat-icon-svg {
